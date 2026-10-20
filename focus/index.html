@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><title>Focus Quest</title><style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:#0f1220;color:#f4f4f8;padding:20px 16px 40px;max-width:520px;margin:auto}button{font:inherit;border:0;border-radius:12px;padding:14px 16px;background:#6c5cff;color:#fff;font-weight:700;width:100%;margin:6px 0}button.ghost{background:#232744;color:#dde}button:disabled{opacity:.45}.row{display:flex;gap:8px}.row button{flex:1}.boss{background:#1b1f36;border-radius:16px;padding:18px;text-align:center}.hp{height:14px;background:#333;border-radius:99px;overflow:hidden}.hp i{display:block;height:100%;background:#ff5470;transition:width .5s}.time{font-size:64px;font-weight:800;text-align:center;margin:14px 0}.muted{color:#aab}.big{font-size:40px}
+</style></head><body><a href="../" style="color:#aab">← Apps</a><h1>⏱️ Focus Quest</h1><p class="muted">Each minute focused = 1 damage. Finish a session to defeat the boss and earn XP.</p>
+<div class="boss"><div class="big" id="face">👹</div><b id="bossName">Sloth Goblin</b><div class="hp"><i id="hp" style="width:100%"></i></div><div class="muted" id="hpText"></div></div>
+<div class="time" id="clock">25:00</div>
+<div class="row"><button data-min="5">5 min</button><button data-min="15">15 min</button><button data-min="25">25 min</button></div>
+<button id="toggle">Start Focus</button><button class="ghost" id="giveup">Give Up (boss heals)</button>
+<p id="stats"></p><p id="msg" class="muted"></p>
+<script>
+let S=JSON.parse(localStorage.getItem('fq')||'{"xp":0,"wins":0,"sessions":0}');let total=25*60,left=total,timer=null,bossMax=25,boss=bossMax;
+const bosses=[["Sloth Goblin","👹"],["Distraction Dragon","🐉"],["Procrastination Lich","🧙"],["Deadline Hydra","🐲"]];
+function render(){let b=bosses[S.wins%bosses.length];face.textContent=b[1];bossName.textContent=b[0];hp.style.width=(boss/bossMax*100)+'%';hpText.textContent=boss+' / '+bossMax+' HP';clock.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');stats.textContent=`Level ${1+Math.floor(S.xp/100)} • XP ${S.xp} • Bosses beaten ${S.wins} • Sessions ${S.sessions}`;localStorage.setItem('fq',JSON.stringify(S))}
+document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>{if(timer)return;total=left=+b.dataset.min*60;bossMax=boss=+b.dataset.min;render()});
+toggle.onclick=()=>{if(timer){clearInterval(timer);timer=null;toggle.textContent='Resume Focus';return}toggle.textContent='Pause';timer=setInterval(()=>{left--;boss=Math.max(0,Math.ceil(left/60));if(left<=0){clearInterval(timer);timer=null;S.xp+=total/60;S.wins++;S.sessions++;msg.textContent='🏆 Boss defeated! +'+(total/60)+' XP';boss=bossMax;left=total;toggle.textContent='Start Focus'}render()},1000)};
+giveup.onclick=()=>{if(timer){clearInterval(timer);timer=null}left=total;boss=bossMax;toggle.textContent='Start Focus';msg.textContent='Boss healed. No shame — start a shorter round.';render()};
+render();
+</script></body></html>

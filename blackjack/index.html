@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><title>Blackjack Trainer</title><style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:#10243e;color:#fff;padding:20px 16px 40px;max-width:520px;margin:auto}button{font:inherit;border:0;border-radius:12px;padding:15px;background:#ffd34d;color:#111;font-weight:800;flex:1}.row{display:flex;gap:8px;margin:10px 0}.hand{background:#17365d;border-radius:14px;padding:16px;margin:10px 0;font-size:22px}.muted{color:#bcd}
+</style></head><body><a href="../" style="color:#bcd">← Apps</a><h1>♠️ Blackjack Trainer</h1><p class="muted">Play the hand — the coach grades each move against basic strategy (no splits in v1).</p>
+<div class="hand" id="dealer"></div><div class="hand" id="player"></div><p id="msg"></p>
+<div class="row"><button id="hit">Hit</button><button id="stand">Stand</button><button id="double">Double</button></div>
+<button id="newBtn" style="width:100%;background:#fff;color:#111;padding:15px;border-radius:12px;font-weight:800">New Hand</button><p id="score" class="muted"></p>
+<script>
+let S=JSON.parse(localStorage.getItem('bj')||'{"n":0,"ok":0,"chips":1000}'),P=[],D=[],done=false;
+const draw=()=>{let v=Math.floor(Math.random()*13)+1;return v>10?10:v==1?11:v};
+function val(h){let t=h.reduce((a,b)=>a+b,0);let aces=h.filter(x=>x==11).length;while(t>21&&aces){t-=10;aces--}return t}
+function soft(h){return h.includes(11)&&h.reduce((a,b)=>a+b,0)<=21}
+function advice(){let p=val(P),d=D[0];if(p>=17&&!soft(P))return'Stand';if(soft(P))return p>=19?'Stand':p==18?(d>=9?'Hit':'Stand'):'Hit';if(p==11)return'Double';if(p==10)return d<=9?'Double':'Hit';if(p==9)return(d>=3&&d<=6)?'Double':'Hit';if(p>=12&&p<=16)return d<=6?'Stand':'Hit';return'Hit'}
+function grade(a){let best=advice();S.n++;if(a===best)S.ok++;msg.textContent=(a===best?'✅ Basic strategy: ':'Coach: correct play was ')+best+'. '+msg.textContent;localStorage.setItem('bj',JSON.stringify(S))}
+function render(end){dealer.textContent='Dealer: '+(end?D.join(' ')+' = '+val(D):D[0]+' + ?');player.textContent='You: '+P.join(' ')+' = '+val(P);score.textContent=`Decisions ${S.ok}/${S.n} correct • Chips ${S.chips}`}
+function finish(){done=true;while(val(D)<17)D.push(draw());let p=val(P),d=val(D);let r=p>21?'Bust — dealer wins.':d>21?'Dealer busts — you win! +20':p>d?'You win! +20':p<d?'Dealer wins. -20':'Push.';if(p<=21&&(d>21||p>d))S.chips+=20;else if(p>21||p<d)S.chips-=20;msg.textContent=r;render(true);localStorage.setItem('bj',JSON.stringify(S))}
+function newHand(){P=[draw(),draw()];D=[draw(),draw()];done=false;msg.textContent='Your move.';render(false)}
+hit.onclick=()=>{if(done)return;grade('Hit');P.push(draw());if(val(P)>=21)finish();else render(false)};
+stand.onclick=()=>{if(done)return;grade('Stand');finish()};
+double.onclick=()=>{if(done||P.length!=2)return;grade('Double');P.push(draw());finish()};
+newBtn.onclick=newHand;newHand();
+</script></body></html>

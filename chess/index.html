@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><title>Chess Opening Trainer</title><style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:#171717;color:#fff;padding:20px 16px 40px;max-width:520px;margin:auto}button{font:inherit;border:0;border-radius:12px;padding:14px;background:#eee;color:#111;font-weight:700;width:100%;margin:6px 0}.board{display:grid;grid-template-columns:repeat(8,1fr);border-radius:10px;overflow:hidden;margin:16px 0}.sq{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(20px,7vw,34px)}.l{background:#ebecd0;color:#111}.d{background:#739552;color:#111}select{font:inherit;width:100%;padding:12px;border-radius:10px}.muted{color:#bbb}
+</style></head><body><a href="../" style="color:#bbb">← Apps</a><h1>♞ Chess Opening Trainer</h1><p class="muted">Play White. After Black replies, pick the book move.</p>
+<select id="opening"><option value="italian">Italian Game</option><option value="london">London System</option><option value="french">French Defense (as White)</option></select>
+<div class="board" id="board"></div><p id="line"></p><div id="choices"></div><p id="msg"></p><button id="restart">Restart Line</button>
+<script>
+const P={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+// Each entry: [SAN, from, to] — castling uses from=e1,to=g1 and is special-cased.
+const lines={
+italian:{why:'Quiet Italian (Giuoco Pianissimo): develop, c3/d3, castle, then aim for d4.',steps:[['e4','e2','e4'],['e5','e7','e5'],['Nf3','g1','f3'],['Nc6','b8','c6'],['Bc4','f1','c4'],['Bc5','f8','c5'],['c3','c2','c3'],['Nf6','g8','f6'],['d3','d2','d3'],['a6','a7','a6'],['O-O','e1','g1'],['Ba7','c5','a7']]},
+london:{why:'London: Bf4 before e3 keeps the bishop outside the pawn chain; solid system development.',steps:[['d4','d2','d4'],['d5','d7','d5'],['Bf4','c1','f4'],['Nf6','g8','f6'],['e3','e2','e3'],['e6','e7','e6'],['Nf3','g1','f3'],['c5','c7','c5'],['c3','c2','c3'],['Nc6','b8','c6'],['Nbd2','b1','d2'],['Bd6','f8','d6']]},
+french:{why:'Advance French: grab space with e5, support it with f4, develop before the center opens.',steps:[['e4','e2','e4'],['e6','e7','e6'],['d4','d2','d4'],['d5','d7','d5'],['Nc3','b1','c3'],['Nf6','g8','f6'],['e5','e4','e5'],['Nfd7','f6','d7'],['f4','f2','f4'],['c5','c7','c5'],['Nf3','g1','f3'],['Nc6','b8','c6']]}};
+let B,step=0,key='italian';
+function startPos(){B={a1:'R',b1:'N',c1:'B',d1:'Q',e1:'K',f1:'B',g1:'N',h1:'R',a2:'P',b2:'P',c2:'P',d2:'P',e2:'P',f2:'P',g2:'P',h2:'P',a7:'p',b7:'p',c7:'p',d7:'p',e7:'p',f7:'p',g7:'p',h7:'p',a8:'r',b8:'n',c8:'b',d8:'q',e8:'k',f8:'b',g8:'n',h8:'r'}}
+function applyStep(s){let [san,from,to]=s;if(san==='O-O'){B.g1=B.e1;delete B.e1;B.f1=B.h1;delete B.h1;return}B[to]=B[from];delete B[from]}
+function draw(){let h='';for(let r=8;r>=1;r--)for(let f=0;f<8;f++){let sq='abcdefgh'[f]+r;h+=`<div class="sq ${(f+r)%2?'l':'d'}">${B[sq]?P[B[sq]]:''}</div>`}board.innerHTML=h}
+function play(){let L=lines[key];let sans=L.steps.map(s=>s[0]);
+ if(step>=L.steps.length){line.textContent=sans.join(' ');msg.textContent='✅ Line complete! '+L.why;choices.innerHTML='';return}
+ if(step%2===1){applyStep(L.steps[step]);step++;draw();play();return}
+ line.textContent='Played: '+(sans.slice(0,step).join(' ')||'—')+' … your move '+(step/2+1);
+ let correct=sans[step];let pool=['Nf3','Bc4','d4','e5','O-O','c3','Bf4','f4','Nc3','Qh5','h4','a4','g3','Bb5'].filter(x=>x!==correct&&!sans.slice(0,step).includes(x));pool.sort(()=>Math.random()-.5);
+ let opts=[correct,pool[0],pool[1]].sort(()=>Math.random()-.5);
+ choices.innerHTML=opts.map(o=>`<button data-m="${o}">${o}</button>`).join('');
+ document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{if(b.dataset.m===correct){msg.textContent='✅ Book move.';applyStep(L.steps[step]);step++;draw();setTimeout(play,350)}else msg.textContent='❌ Not the book move here — try again.'})}
+function restart(){key=opening.value;startPos();step=0;msg.textContent='';draw();play()}
+opening.onchange=restart;document.getElementById('restart').onclick=restart;restart();
+</script></body></html>

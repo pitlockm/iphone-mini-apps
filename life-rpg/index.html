@@ -1,0 +1,167 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><title>Life RPG</title><style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:#14101f;color:#f2eefc;padding:16px 14px 48px;max-width:540px;margin:auto}
+a{color:#bdb3e8}h1{margin:6px 0 2px;font-size:26px}h2{margin:22px 0 8px;font-size:19px}.muted{color:#a99fd0;font-size:14px}
+.card{background:#211a38;border:1px solid #382c5e;border-radius:16px;padding:14px;margin:10px 0}
+.bar{height:12px;background:#120d22;border-radius:99px;overflow:hidden;margin:4px 0 8px}.bar i{display:block;height:100%;transition:width .7s ease}
+.xp i{background:#8b6cff}.hp i{background:#ff5470}.gold-t{color:#ffd34d;font-weight:800}
+button{font:inherit;border:0;border-radius:10px;padding:10px 12px;background:#6c5cff;color:#fff;font-weight:700;cursor:pointer}button.sm{padding:7px 10px;font-size:14px}button.ghost{background:#332a52;color:#e6e0ff}button.warn{background:#ff5470}button:disabled{opacity:.38;filter:grayscale(.8)}
+.row{display:flex;gap:8px;align-items:center}.row.wrap{flex-wrap:wrap}.grow{flex:1}
+.task{display:flex;gap:10px;align-items:center;background:#1b1430;border:1px solid #322758;border-radius:12px;padding:10px;margin:7px 0}
+.task.done{opacity:.55}.task.locked{opacity:.45}
+.badge{background:#3a2d63;border-radius:99px;padding:2px 8px;font-size:12px;color:#d9d2ff;white-space:nowrap}.bounty{background:#5a4510;color:#ffd34d}
+input,select,textarea{font:inherit;width:100%;padding:10px;border-radius:10px;border:1px solid #453a70;background:#120d22;color:#fff;margin:4px 0}
+.avatar{font-size:52px;text-align:center}.bossface{font-size:56px;display:inline-block}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}.bob{animation:bob 2.2s ease-in-out infinite}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-4deg)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}.shake{animation:shake .45s}
+@keyframes floatUp{0%{opacity:0;transform:translateY(8px) scale(.8)}15%{opacity:1}100%{opacity:0;transform:translateY(-64px) scale(1.15)}}
+.floater{position:fixed;z-index:60;font-weight:800;font-size:19px;color:#ffd34d;text-shadow:0 2px 8px #000;pointer-events:none;animation:floatUp 1.15s ease-out forwards}
+@keyframes confettiFall{0%{transform:translateY(-10px) rotate(0)}100%{transform:translateY(105vh) rotate(560deg)}}
+.confetti{position:fixed;top:-20px;z-index:70;font-size:21px;pointer-events:none;animation:confettiFall 1.8s ease-in forwards}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:50;box-shadow:inset 0 0 90px 30px rgba(255,30,60,.0);transition:box-shadow .15s}
+#vig.on{box-shadow:inset 0 0 90px 30px rgba(255,30,60,.55)}
+#banner{display:none;background:#5c1230;border:1px solid #ff5470;border-radius:14px;padding:12px;margin:10px 0}
+#death{display:none;background:#3d0a18;border:1px solid #ff5470;border-radius:14px;padding:14px;margin:10px 0;text-align:center}
+.log{font-size:13px;color:#c9c2ea;max-height:170px;overflow:auto}.log div{padding:3px 0;border-bottom:1px solid #2a2147}
+.shopitem{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #2a2147}.shopitem:last-child{border-bottom:0}
+select.inline,input.inline{width:auto}.pet{font-size:26px}
+details{margin-top:8px}summary{cursor:pointer;color:#bdb3e8}
+.ringwrap{text-align:center}.timer{font-size:46px;font-weight:800}
+</style></head><body><div id="vig"></div>
+<a href="../">← Apps</a><h1>⚔️ Life RPG</h1><div class="muted">Real life is the game. Chores, focus, health and big quests earn XP &amp; gold — misses cost HP.</div>
+
+<div id="banner"></div><div id="death"></div>
+
+<div class="card"><div class="avatar" id="avatar">🧙</div><div class="row"><b class="grow" id="lvl">Level 1</b><span class="gold-t" id="gold">🪙 0</span></div>
+<div class="muted">XP</div><div class="bar xp"><i id="xpbar" style="width:0%"></i></div>
+<div class="muted">HP</div><div class="bar hp"><i id="hpbar" style="width:100%"></i></div>
+<div class="row wrap" id="stats"></div><div class="row wrap" id="gear"></div><div class="row wrap" id="pets"></div></div>
+
+<h2>🎯 Focus Session</h2>
+<div class="card ringwrap"><div class="bossface bob" id="focusBoss">👹</div><div id="focusInfo" class="muted">Pick a quest target and a length. Finishing deals damage to that quest's current stage (100 damage = stage cleared).</div>
+<div class="timer" id="clock">25:00</div>
+<div class="row"><select id="focusQuest" class="grow"></select></div>
+<div class="row"><button class="ghost grow" data-min="10">10m</button><button class="ghost grow" data-min="25">25m</button><button class="ghost grow" data-min="50">50m</button></div>
+<button id="focusBtn" style="width:100%;margin-top:8px">Start Focus</button>
+<button id="focusDemo" class="ghost sm" style="margin-top:6px">⚡ Demo: finish now (for testing)</button>
+<button id="focusQuit" class="ghost sm" style="margin-top:6px">Abandon (−2 HP)</button></div>
+
+<h2>🔁 Dailies</h2><div class="muted">Reset every day. A miss at rollover costs HP — but Dailies never get deadline-locked.</div><div id="dailies"></div>
+<div class="card"><b>Add a Daily</b><input id="ndName" placeholder="e.g. Make the bed"><div class="row"><select id="ndDiff"><option value="trivial">Trivial</option><option value="easy" selected>Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select><select id="ndStat"><option>STR</option><option>INT</option><option>VIT</option><option>HOM</option></select><button id="ndAdd">Add</button></div></div>
+
+<h2>✋ Habits</h2><div class="muted">Tap + when you do the good thing, − when the bad one gets you (−1 HP).</div><div id="habits"></div>
+<div class="card"><b>Add a Habit</b><input id="nhName" placeholder="e.g. Drank water / Doomscrolled"><div class="row"><select id="nhStat"><option>STR</option><option>INT</option><option>VIT</option><option>HOM</option></select><button id="nhAdd" class="grow">Add</button></div></div>
+
+<h2>📜 Side Quests (To-Dos)</h2><div class="muted">One-off chores &amp; errands. Their gold bounty grows +2% for every other task you finish first (max +100%, +20%/day).</div><div id="todos"></div>
+<div class="card"><b>Add a Side Quest</b><input id="ntName" placeholder="e.g. Replace porch light bulb"><div class="row"><select id="ntDiff"><option value="trivial">Trivial</option><option value="easy" selected>Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select><select id="ntStat"><option>STR</option><option>INT</option><option>VIT</option><option>HOM</option></select><button id="ntAdd">Add</button></div></div>
+
+<h2>🐉 Major Quests</h2><div class="muted">Big projects, stage by stage. A deadline within 48 hours locks everything else. Set deadlines on your quests!</div><div id="quests"></div>
+<div class="card"><b>New Major Quest</b><input id="nqName" placeholder="Quest name"><input id="nqDeadline" type="date"><textarea id="nqStages" rows="3" placeholder="Stages, one per line"></textarea><button id="nqAdd" style="width:100%">Begin Quest</button></div>
+
+<h2>📱 Screen Budgets <span class="badge">honor system</span></h2>
+<div class="card"><div class="muted">Enter today's minutes (peek at your Screen Time widget). Under target in a category: +15 gold, +10 XP. Over: −3 HP. Once per day.</div><div id="screen"></div><button id="screenBtn" style="width:100%;margin-top:6px">Submit Today's Screen Time</button></div>
+
+<h2>🛒 Rewards Shop</h2>
+<div class="card"><b>In-game</b><div id="shop"></div></div>
+<div class="card"><b>Real-world rewards — your prices, your honor</b><div id="rewards"></div>
+<input id="nrName" placeholder="Reward name (e.g. Order takeout)"><div class="row"><input id="nrPrice" type="number" placeholder="Gold price" class="grow"><button id="nrAdd">Add Reward</button></div></div>
+
+<h2>🎒 Inventory &amp; Log</h2>
+<div class="card"><div id="inv" class="muted"></div><div class="log" id="log"></div></div>
+
+<div class="card"><b>💾 Save data</b><div class="muted" id="backupInfo"></div>
+<div class="row wrap"><button class="ghost sm" id="expBtn">Export Save</button><button class="ghost sm" id="impBtn">Import Save</button><input type="file" id="impFile" accept=".json,application/json" style="display:none"><button class="warn sm" id="resetBtn">Reset Game</button><button class="ghost sm" id="soundBtn">Sound: On</button></div>
+<textarea id="expBox" rows="3" placeholder="Your exported save appears here — copy it somewhere safe, or send it to Muse for a game-master audit." readonly></textarea></div>
+<p class="muted">MVP tuning (from the plan): bounty +2%/task, caps +100% &amp; +20%/day • deadline lock 48h • death = −1 level, −25% gold, lose an item • random drop chance 12%.</p>
+<script>
+const KEY='liferpg_v1';
+const DIFF={trivial:{xp:5,gold:5,dmg:2},easy:{xp:10,gold:10,dmg:3},medium:{xp:20,gold:22,dmg:5},hard:{xp:40,gold:45,dmg:8}};
+const STAGE={xp:50,gold:60};
+const PETS=['🐶','🐱','🦊','🐢','🦉','🐸','🦄','🐙'];
+const DROPS=['🥚','🍎','🧪','🍖','🪴','💎'];
+const GEAR=[{icon:'🗡️',name:'Wooden Sword',price:150},{icon:'🛡️',name:'Oak Shield',price:200},{icon:'🎩',name:'Wizard Hat',price:180},{icon:'🧣',name:'Hero Cape',price:250}];
+const uid=()=>Math.random().toString(36).slice(2,9);
+const todayStr=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function seed(){return {v:1,player:{level:1,xp:0,xpNext:100,hp:50,hpMax:50,gold:50,stats:{STR:0,INT:0,VIT:0,HOM:0},freezes:0,items:[],pets:[],drops:[]},
+habits:[{id:uid(),name:'Drank water 💧',stat:'VIT',count:0},{id:uid(),name:'Went for a walk 🚶',stat:'STR',count:0},{id:uid(),name:'Doomscrolled 📱',stat:'INT',count:0},{id:uid(),name:'Ate junk food 🍟',stat:'VIT',count:0}],
+dailies:[{id:uid(),name:'Go to the gym 🏋️',diff:'hard',stat:'STR',done:false,streak:0},{id:uid(),name:'Cook a healthy meal 🥗',diff:'medium',stat:'VIT',done:false,streak:0},{id:uid(),name:'10-minute tidy 🧹',diff:'easy',stat:'HOM',done:false,streak:0}],
+todos:[{id:uid(),name:'Clean out one drawer',diff:'easy',stat:'HOM',bounty:0},{id:uid(),name:'Replace the front porch light bulb',diff:'medium',stat:'HOM',bounty:0}],
+quests:[{id:uid(),name:'⚖️ The Lawsuit',deadline:'',dmg:0,done:false,stages:[{name:'Set the quest stages & deadline (edit below)',done:false,bounty:0},{name:'Decide the open filing question',done:false,bounty:0},{name:'Complete the filing paperwork',done:false,bounty:0},{name:'File it',done:false,bounty:0}]}],
+rewards:[{id:uid(),name:'Watch a TV episode 📺',price:100},{id:uid(),name:'Junk food treat 🍔',price:150},{id:uid(),name:'Guilt-free scrolling, 15 min 📱',price:75},{id:uid(),name:'Big reward (set your own!) 🎉',price:1000}],
+settings:{sound:true,targets:{Social:60,Entertainment:120,Games:60}},
+screen:{day:todayStr(),submitted:false},
+meta:{lastDay:todayStr(),bountyDate:todayStr(),bountyToday:0,overrideDay:'',lastBackup:''},
+log:[{t:Date.now(),text:'⚔️ Adventure begins. Level 1, 50 HP, 50 gold.'}]}}
+let S; try{S=JSON.parse(localStorage.getItem(KEY))||seed()}catch(e){S=seed()}
+let AC=null; function beep(f,d,type){if(!S.settings.sound)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();let o=AC.createOscillator(),g=AC.createGain();o.type=type||'sine';o.frequency.value=f;g.gain.setValueAtTime(.18,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+(d||.12));o.connect(g).connect(AC.destination);o.start();o.stop(AC.currentTime+(d||.12))}catch(e){}}
+const coin=()=>{beep(950,.09);setTimeout(()=>beep(1320,.13),70)};
+const thud=()=>beep(110,.2,'square'); const fanfare=()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.16),i*110))};
+function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+function addLog(text){S.log.unshift({t:Date.now(),text});S.log=S.log.slice(0,200)}
+function floater(text,x,y){let el=document.createElement('div');el.className='floater';el.textContent=text;el.style.left=(x||innerWidth/2-30)+'px';el.style.top=(y||180)+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),1200)}
+function confetti(){['🎉','⭐','🪙','✨','🎊'].forEach((c,i)=>{for(let j=0;j<5;j++){let el=document.createElement('div');el.className='confetti';el.textContent=c;el.style.left=Math.random()*96+'vw';el.style.animationDelay=(Math.random()*.5)+'s';document.body.appendChild(el);setTimeout(()=>el.remove(),2600)}})}
+function flashVig(){let v=document.getElementById('vig');v.classList.add('on');setTimeout(()=>v.classList.remove('on'),350)}
+function addXP(n){let P=S.player;P.xp+=n;while(P.xp>=P.xpNext){P.xp-=P.xpNext;P.level++;P.xpNext=Math.round(P.xpNext*1.4);P.hp=P.hpMax;addLog('🎉 LEVEL UP! Now level '+P.level+'. HP restored.');confetti();fanfare()}}
+function award(xp,gold,stat,ev){let P=S.player;addXP(xp);P.gold+=gold;if(stat)P.stats[stat]++;coin();floater('+'+gold+' 🪙  +'+xp+' XP');if(ev)rollDrop()}
+function rollDrop(){if(Math.random()<.12){let d=DROPS[Math.floor(Math.random()*DROPS.length)];S.player.drops.push(d);addLog('🎁 Drop! You found '+d+' — check your pack.');floater('🎁 '+d)}}
+function deathCheck(){let P=S.player;if(P.hp>0)return false;P.level=Math.max(1,P.level-1);let lost=Math.floor(P.gold*.25);P.gold-=lost;let item=P.items.pop()||P.pets.pop()||'nothing';P.hp=25;P.xpNext=Math.round(100*Math.pow(1.4,P.level-1));P.xp=Math.min(P.xp,P.xpNext-1);let d=document.getElementById('death');d.style.display='block';d.innerHTML='💀 <b>YOU DIED.</b><br>Lost a level (now '+P.level+'), '+lost+' gold, and '+(item&&item.name?item.name:item)+'.<br>Revived at 25 HP. The quest continues.';addLog('💀 Death: −1 level, −'+lost+' gold, lost an item. Revived at 25 HP.');thud();return true}
+function damage(n,why){let P=S.player;P.hp-=n;addLog('💔 '+why+' −'+n+' HP');flashVig();thud();deathCheck()}
+function urgentQuest(){let now=Date.now();return S.quests.find(q=>!q.done&&q.deadline&&((new Date(q.deadline+'T23:59:59')-now)<=48*3600*1000))}
+function locked(kind,questId){let u=urgentQuest();if(!u||S.meta.overrideDay===todayStr())return false;if(kind==='daily'||kind==='screen')return false;if(kind==='stage'&&questId===u.id)return false;if(kind==='focus'&&questId===u.id)return false;return true}
+function growBounty(){let m=S.meta;if(m.bountyDate!==todayStr()){m.bountyDate=todayStr();m.bountyToday=0}if(m.bountyToday>=20)return;let add=Math.min(2,20-m.bountyToday);S.todos.forEach(t=>t.bounty=Math.min(100,t.bounty+add));S.quests.forEach(q=>q.stages.forEach(s=>{if(!s.done)s.bounty=Math.min(100,(s.bounty||0)+add)}));m.bountyToday+=add}
+function rollover(){let t=todayStr();if(S.meta.lastDay===t)return;let days=Math.max(1,Math.round((new Date(t)-new Date(S.meta.lastDay))/86400000));let missed=S.dailies.filter(d=>!d.done);let totalDmg=0;missed.forEach(d=>{if(S.player.freezes>0){S.player.freezes--;addLog('🧊 Streak Freeze saved "'+d.name+'" — streak kept at '+d.streak+'.')}else{totalDmg+=DIFF[d.diff].dmg;d.streak=0;addLog('❌ Missed daily: '+d.name)}});S.dailies.forEach(d=>d.done=false);if(totalDmg>0)damage(Math.min(24,totalDmg*days),'Missed dailies ('+days+' day rollover).');S.meta.lastDay=t;S.meta.bountyDate=t;S.meta.bountyToday=0;S.screen={day:t,submitted:false};addLog('🌅 New day. Rollover complete.');save()}
+/* actions */
+window.tapHabit=(id,dir)=>{let h=S.habits.find(x=>x.id===id);if(!h)return;if(dir>0){if(locked('habit'))return shakeLock();h.count++;addLog('✋ Habit + '+h.name);award(3,3,h.stat,false);growBounty()}else{h.count--;addLog('✋ Habit − '+h.name);damage(1,'Bad habit: '+h.name)}save();render()};
+window.doDaily=(id)=>{let d=S.dailies.find(x=>x.id===id);if(!d||d.done)return;let b=DIFF[d.diff];d.done=true;d.streak++;addLog('🔁 Daily done: '+d.name+' (streak '+d.streak+')');award(b.xp,b.gold,d.stat,true);growBounty();save();render()};
+window.doTodo=(id)=>{if(locked('todo'))return shakeLock();let i=S.todos.findIndex(x=>x.id===id);if(i<0)return;let t=S.todos[i],b=DIFF[t.diff];let g=Math.round(b.gold*(1+(t.bounty||0)/100));addLog('📜 Side quest done: '+t.name+' (+'+(t.bounty||0)+'% bounty → '+g+' gold)');S.todos.splice(i,1);award(b.xp,g,t.stat,true);growBounty();save();render()};
+window.doStage=(qid,idx)=>{let q=S.quests.find(x=>x.id===qid);if(!q)return;if(locked('stage',qid))return shakeLock();let s=q.stages[idx];if(!s||s.done)return;let g=Math.round(STAGE.gold*(1+(s.bounty||0)/100));s.done=true;s.bounty=0;addLog('🐉 Stage cleared on '+q.name+': '+s.name+' → '+g+' gold');award(STAGE.xp,g,'INT',true);growBounty();if(q.stages.every(x=>x.done)){q.done=true;addLog('🏆 MAJOR QUEST COMPLETE: '+q.name+'! Bonus 100 gold.');S.player.gold+=100;confetti();fanfare()}save();render()};
+window.setDeadline=(qid,val)=>{let q=S.quests.find(x=>x.id===qid);if(q){q.deadline=val;addLog('📅 Deadline set for '+q.name+': '+(val||'none'));save();render()}};
+window.buyGear=(i)=>{let g=GEAR[i];if(S.player.gold<g.price)return notEnough();S.player.gold-=g.price;S.player.items.push(g);addLog('🛒 Bought '+g.icon+' '+g.name);coin();save();render()};
+window.buy=item=>{let P=S.player;if(item==='potion'){if(P.gold<30)return notEnough();P.gold-=30;P.hp=Math.min(P.hpMax,P.hp+20);addLog('🧪 Drank an HP potion (+20 HP).')}else if(item==='freeze'){if(P.gold<100)return notEnough();P.gold-=100;P.freezes++;addLog('🧊 Bought a Streak Freeze ('+P.freezes+' held).')}else if(item==='egg'){if(P.gold<200)return notEnough();P.gold-=200;let p=PETS[Math.floor(Math.random()*PETS.length)];P.pets.push(p);addLog('🥚 The egg hatched into… '+p+'!');floater('🥚→'+p)}coin();save();render()};
+window.redeem=id=>{let r=S.rewards.find(x=>x.id===id);if(!r)return;if(S.player.gold<r.price)return notEnough();S.player.gold-=r.price;addLog('🎁 Redeemed: '+r.name+' (−'+r.price+' gold). Enjoy it — you earned it.');coin();save();render()};
+function notEnough(){floater('Not enough gold 🪙');thud()}
+function shakeLock(){floater('🔒 Deadline Mode!');thud();let b=document.getElementById('banner');b.style.display='block'}
+/* focus */
+let fTotal=25*60,fLeft=fTotal,fTimer=null;
+document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>{if(fTimer)return;fTotal=fLeft=+b.dataset.min*60;drawClock()});
+function drawClock(){document.getElementById('clock').textContent=String(Math.floor(fLeft/60)).padStart(2,'0')+':'+String(fLeft%60).padStart(2,'0')}
+function focusTarget(){return document.getElementById('focusQuest').value||''}
+function finishFocus(){clearInterval(fTimer);fTimer=null;document.getElementById('focusBtn').textContent='Start Focus';let mins=fTotal/60;let qid=focusTarget();award(mins,mins,'INT',true);addLog('🎯 Focus session complete: '+mins+' min.');if(qid){let q=S.quests.find(x=>x.id===qid);if(q&&!q.done){q.dmg=(q.dmg||0)+mins;let fb=document.getElementById('focusBoss');fb.classList.remove('shake');void fb.offsetWidth;fb.classList.add('shake');addLog('💥 Dealt '+mins+' damage to '+q.name+' (stage progress '+Math.min(100,q.dmg)+'/100).');while(q.dmg>=100&&q.stages.some(s=>!s.done)){q.dmg-=100;let idx=q.stages.findIndex(s=>!s.done);window.doStage(qid,idx)}}}growBounty();save();render()}
+document.getElementById('focusBtn').onclick=()=>{let qid=focusTarget();if(locked('focus',qid))return shakeLock();if(fTimer){clearInterval(fTimer);fTimer=null;document.getElementById('focusBtn').textContent='Resume Focus';return}document.getElementById('focusBtn').textContent='Pause';fTimer=setInterval(()=>{fLeft--;drawClock();if(fLeft<=0)finishFocus()},1000)};
+document.getElementById('focusDemo').onclick=()=>{let qid=focusTarget();if(locked('focus',qid))return shakeLock();finishFocus()};
+document.getElementById('focusQuit').onclick=()=>{if(fTimer){clearInterval(fTimer);fTimer=null;document.getElementById('focusBtn').textContent='Start Focus'}fLeft=fTotal;drawClock();damage(2,'Abandoned a focus session.');save();render()};
+/* screen */
+document.getElementById('screenBtn').onclick=()=>{if(S.screen.submitted)return;let any=false;document.querySelectorAll('[data-cat]').forEach(i=>{if(i.value!=='')any=true});if(!any){floater('Enter at least one category first 📱');return}let total={xp:0,gold:0,dmg:0};document.querySelectorAll('[data-cat]').forEach(inp=>{let cat=inp.dataset.cat;let used=+inp.value;if(inp.value==='')return;let tgt=+document.querySelector('[data-tgt="'+cat+'"]').value||0;S.settings.targets[cat]=tgt;if(used<=tgt){total.xp+=10;total.gold+=15;addLog('📱 '+cat+': '+used+'m ≤ '+tgt+'m target → +15 gold')}else{total.dmg+=3;addLog('📱 '+cat+': '+used+'m > '+tgt+'m target → −3 HP')}});S.screen.submitted=true;if(total.xp)award(total.xp,total.gold,'INT',false);if(total.dmg)damage(total.dmg,'Over screen budget.');save();render()};
+/* add forms */
+document.getElementById('ndAdd').onclick=()=>{let n=document.getElementById('ndName').value.trim();if(!n)return;S.dailies.push({id:uid(),name:n,diff:document.getElementById('ndDiff').value,stat:document.getElementById('ndStat').value,done:false,streak:0});document.getElementById('ndName').value='';save();render()};
+document.getElementById('nhAdd').onclick=()=>{let n=document.getElementById('nhName').value.trim();if(!n)return;S.habits.push({id:uid(),name:n,stat:document.getElementById('nhStat').value,count:0});document.getElementById('nhName').value='';save();render()};
+document.getElementById('ntAdd').onclick=()=>{let n=document.getElementById('ntName').value.trim();if(!n)return;S.todos.push({id:uid(),name:n,diff:document.getElementById('ntDiff').value,stat:document.getElementById('ntStat').value,bounty:0});document.getElementById('ntName').value='';save();render()};
+document.getElementById('nqAdd').onclick=()=>{let n=document.getElementById('nqName').value.trim();let st=document.getElementById('nqStages').value.split('\n').map(x=>x.trim()).filter(Boolean);if(!n||!st.length)return;S.quests.push({id:uid(),name:n,deadline:document.getElementById('nqDeadline').value,dmg:0,done:false,stages:st.map(x=>({name:x,done:false,bounty:0}))});document.getElementById('nqName').value='';document.getElementById('nqStages').value='';addLog('🐉 New major quest: '+n);save();render()};
+document.getElementById('nrAdd').onclick=()=>{let n=document.getElementById('nrName').value.trim();let p=+document.getElementById('nrPrice').value;if(!n||!(p>0))return;S.rewards.push({id:uid(),name:n,price:p});document.getElementById('nrName').value='';document.getElementById('nrPrice').value='';save();render()};
+document.getElementById('soundBtn').onclick=e=>{S.settings.sound=!S.settings.sound;e.target.textContent='Sound: '+(S.settings.sound?'On':'Off');save()};
+document.getElementById('expBtn').onclick=()=>{let j=JSON.stringify(S);document.getElementById('expBox').value=j;S.meta.lastBackup=todayStr();save();render();if(navigator.clipboard)navigator.clipboard.writeText(j).catch(()=>{});floater('Save copied 💾')};
+document.getElementById('impBtn').onclick=()=>document.getElementById('impFile').click();
+document.getElementById('impFile').onchange=e=>{let f=e.target.files[0];if(!f)return;f.text().then(t=>{try{let j=JSON.parse(t);if(j.v!==1)throw 0;S=j;save();render();addLog('💾 Save imported.')}catch(err){alert('That file does not look like a Life RPG save.')}})};
+document.getElementById('resetBtn').onclick=()=>{if(confirm('Reset the whole game? This wipes your character, tasks and gold.')){S=seed();save();render()}};
+/* render */
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function render(){let P=S.player;document.getElementById('lvl').textContent='🧙 Level '+P.level;document.getElementById('gold').textContent='🪙 '+P.gold;
+document.getElementById('xpbar').style.width=Math.min(100,P.xp/P.xpNext*100)+'%';document.getElementById('hpbar').style.width=Math.max(0,P.hp/P.hpMax*100)+'%';
+document.getElementById('avatar').textContent='🧙';document.getElementById('gear').innerHTML=P.items.map(i=>'<span class="badge">'+i.icon+' '+esc(i.name)+'</span>').join('')+(P.freezes?'<span class="badge">🧊 Freezes: '+P.freezes+'</span>':'');
+document.getElementById('pets').innerHTML=P.pets.length?P.pets.map(p=>'<span class="pet">'+p+'</span>').join(' '):'<span class="muted">No pets yet — eggs in the shop.</span>';
+document.getElementById('stats').innerHTML=Object.entries(P.stats).map(([k,v])=>'<span class="badge">'+k+' '+v+'</span>').join('')+'<span class="badge">HP '+P.hp+'/'+P.hpMax+'</span><span class="badge">XP '+P.xp+'/'+P.xpNext+'</span>';
+let u=urgentQuest(),b=document.getElementById('banner');if(u&&S.meta.overrideDay!==todayStr()){b.style.display='block';b.innerHTML='🔒 <b>DEADLINE MODE:</b> "'+esc(u.name)+'" is due '+(u.deadline||'')+'. Other quests are locked until its next stage is done. Dailies still count.<br><button class="warn sm" style="margin-top:6px" onclick="overrideLock()">Break lock today — 25 gold</button>'}else b.style.display='none';
+document.getElementById('dailies').innerHTML=S.dailies.map(d=>'<div class="task'+(d.done?' done':'')+'"><span class="grow">'+esc(d.name)+' <span class="badge">'+d.diff+'</span> <span class="badge">🔥 '+d.streak+'</span></span><button class="sm" '+(d.done?'disabled':'')+' onclick="doDaily(\''+d.id+'\')">'+(d.done?'✓ Done':'Complete')+'</button></div>').join('');
+document.getElementById('habits').innerHTML=S.habits.map(h=>'<div class="task"><span class="grow">'+esc(h.name)+' <span class="badge">'+(h.count>=0?'+':'')+h.count+'</span></span><button class="sm" onclick="tapHabit(\''+h.id+'\',1)">+</button><button class="sm ghost" onclick="tapHabit(\''+h.id+'\',-1)">−</button></div>').join('');
+let lk=locked('todo');document.getElementById('todos').innerHTML=S.todos.length?S.todos.map(t=>'<div class="task'+(lk?' locked':'')+'"><span class="grow">'+esc(t.name)+' <span class="badge">'+t.diff+'</span> '+(t.bounty?'<span class="badge bounty">💰 bounty +'+t.bounty+'%</span>':'')+'</span><button class="sm" '+(lk?'disabled':'')+' onclick="doTodo(\''+t.id+'\')">'+(lk?'🔒':'Complete')+'</button></div>').join(''):'<p class="muted">No side quests. Add one above.</p>';
+document.getElementById('quests').innerHTML=S.quests.map(q=>{let doneN=q.stages.filter(s=>s.done).length;let qlk=locked('stage',q.id);return '<div class="card"><div class="row"><b class="grow">'+esc(q.name)+(q.done?' 🏆':'')+'</b><span class="badge">'+doneN+'/'+q.stages.length+' stages</span></div><div class="muted">Boss progress on current stage: '+(q.dmg||0)+'/100 damage (focus sessions add damage)</div><div class="bar hp"><i style="width:'+(q.done?100:Math.min(100,(q.dmg||0)))+'%"></i></div><div class="row"><span class="muted">Deadline:</span><input type="date" class="inline grow" value="'+(q.deadline||'')+'" onchange="setDeadline(\''+q.id+'\',this.value)"></div>'+q.stages.map((s,i)=>'<div class="task'+(s.done?' done':'')+(qlk&&!s.done?' locked':'')+'"><span class="grow">'+(s.done?'✅ ':'⬜ ')+esc(s.name)+(s.bounty&&!s.done?' <span class="badge bounty">💰 +'+s.bounty+'%</span>':'')+'</span>'+(s.done?'':'<button class="sm" '+(qlk?'disabled':'')+' onclick="doStage(\''+q.id+'\','+i+')">'+(qlk?'🔒':'Clear')+'</button>')+'</div>').join('')+'</div>'}).join('');
+let fq=document.getElementById('focusQuest');let cur=fq.value;fq.innerHTML='<option value="">Training Grounds (no quest)</option>'+S.quests.filter(q=>!q.done).map(q=>'<option value="'+q.id+'">'+esc(q.name)+'</option>').join('');fq.value=cur;
+document.getElementById('screen').innerHTML=Object.keys(S.settings.targets).map(cat=>'<div class="row"><span class="grow">'+cat+'</span><input data-cat="'+cat+'" type="number" inputmode="numeric" placeholder="minutes used" style="width:110px" '+(S.screen.submitted?'disabled':'')+'><span class="muted">target ≤</span><input data-tgt="'+cat+'" type="number" value="'+S.settings.targets[cat]+'" style="width:80px"></div>').join('')+(S.screen.submitted?'<div class="muted">Submitted for today ✓</div>':'');
+document.getElementById('shop').innerHTML='<div class="shopitem"><span class="grow">🧪 HP Potion — +20 HP now</span><b>30 🪙</b><button class="sm" onclick="buy(\'potion\')">Buy</button></div><div class="shopitem"><span class="grow">🧊 Streak Freeze — a missed Daily costs nothing</span><b>100 🪙</b><button class="sm" onclick="buy(\'freeze\')">Buy</button></div><div class="shopitem"><span class="grow">🥚 Mystery Egg — hatches a random pet</span><b>200 🪙</b><button class="sm" onclick="buy(\'egg\')">Buy</button></div>'+GEAR.map((g,i)=>'<div class="shopitem"><span class="grow">'+g.icon+' '+g.name+'</span><b>'+g.price+' 🪙</b><button class="sm" onclick="buyGear('+i+')">Buy</button></div>').join('');
+document.getElementById('rewards').innerHTML=S.rewards.map(r=>'<div class="shopitem"><span class="grow">'+esc(r.name)+'</span><b>'+r.price+' 🪙</b><button class="sm" onclick="redeem(\''+r.id+'\')">Redeem</button></div>').join('');
+document.getElementById('inv').innerHTML='Pack: '+(P.drops.length?P.drops.join(' '):'empty')+' • Items: '+P.items.length+' • Pets: '+P.pets.length;
+document.getElementById('log').innerHTML=S.log.map(l=>'<div>'+new Date(l.t).toLocaleDateString()+' — '+esc(l.text)+'</div>').join('');
+document.getElementById('backupInfo').textContent='Saved automatically on this device. Last export: '+(S.meta.lastBackup||'never — export after your first session!');
+document.getElementById('soundBtn').textContent='Sound: '+(S.settings.sound?'On':'Off')}
+window.overrideLock=()=>{if(S.player.gold<25)return notEnough();S.player.gold-=25;S.meta.overrideDay=todayStr();addLog('🔓 Broke Deadline Mode for today (−25 gold).');save();render()};
+rollover();drawClock();render();
+</script></body></html>

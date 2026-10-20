@@ -1,10 +1,11 @@
 # Mini Apps
 
-Six lightweight, single-file web apps. No build step, no dependencies, no accounts.
+Seven lightweight, single-file web apps. No build step, no dependencies, no accounts.
 All progress saves in the browser on the device (localStorage).
 
 | App | Folder | What it does |
 |---|---|---|
+| Life RPG | `life-rpg/` | Habitica-style life game: Habits, Dailies, focus sessions, side quests & multi-stage Major Quests; procrastination bounty (+2% per other task, capped), 48h deadline lock, HP stakes & death penalty, gold shop with in-game gear/pets and self-priced real-world rewards, honor-system screen-time budgets |
 | Focus Quest | `focus/` | Pomodoro-style focus timer as a boss fight — XP & levels |
 | Poker Trainer | `poker/` | Texas Hold'em preflop decisions by position (simplified chart) |
 | Video Poker Trainer | `video-poker/` | Jacks or Better with optimal-hold coaching hints |

@@ -57,6 +57,11 @@ details{margin-top:8px}summary{cursor:pointer;color:#bdb3e8}
 <h2>🐉 Major Quests</h2><div class="muted">Big projects, stage by stage. A deadline within 48 hours locks everything else. Set deadlines on your quests!</div><div id="quests"></div>
 <div class="card"><b>New Major Quest</b><input id="nqName" placeholder="Quest name"><input id="nqDeadline" type="date"><textarea id="nqStages" rows="3" placeholder="Stages, one per line"></textarea><button id="nqAdd" style="width:100%">Begin Quest</button></div>
 
+<h2>📦 Quest Pack</h2>
+<div class="card"><b>Matt's Stored Quests</b><div class="muted">Everything you've been keeping in notes, trackers and chats with Muse — home projects, the SDA deployment, budget and password migrations — packaged up. Loading merges into your current game: new Side Quests and Major Quests are added, new stages are appended to quests you already have (including The Lawsuit), and anything already in your game is skipped. Your character, gold and progress are never touched. Safe to tap more than once.</div>
+<button id="packBtn" style="width:100%;margin-top:8px">📦 Load Stored Quests Pack</button><div class="muted" id="packMsg" style="margin-top:6px"></div>
+<details><summary>Import a Quest Pack JSON file instead</summary><div class="muted">Same merge rules. A pack is a JSON file with "todos" and "quests" lists — ask Muse to make you one any time.</div><button class="ghost sm" id="packFileBtn" style="margin-top:6px">Choose Pack File</button><input type="file" id="packFile" accept=".json,application/json" style="display:none"></details></div>
+
 <h2>📱 Screen Budgets <span class="badge">honor system</span></h2>
 <div class="card"><div class="muted">Enter today's minutes (peek at your Screen Time widget). Under target in a category: +15 gold, +10 XP. Over: −3 HP. Once per day.</div><div id="screen"></div><button id="screenBtn" style="width:100%;margin-top:6px">Submit Today's Screen Time</button></div>
 
@@ -142,6 +147,31 @@ document.getElementById('expBtn').onclick=()=>{let j=JSON.stringify(S);document.
 document.getElementById('impBtn').onclick=()=>document.getElementById('impFile').click();
 document.getElementById('impFile').onchange=e=>{let f=e.target.files[0];if(!f)return;f.text().then(t=>{try{let j=JSON.parse(t);if(j.v!==1)throw 0;S=j;save();render();addLog('💾 Save imported.')}catch(err){alert('That file does not look like a Life RPG save.')}})};
 document.getElementById('resetBtn').onclick=()=>{if(confirm('Reset the whole game? This wipes your character, tasks and gold.')){S=seed();save();render()}};
+/* quest packs */
+const QUEST_PACK={name:"Matt's Stored Quests",
+todos:[
+{name:'Shower drywall repair',diff:'medium',stat:'HOM'},
+{name:'Crawl-space dehumidifier project',diff:'hard',stat:'HOM'},
+{name:'Hang the Christmas lights 🎄',diff:'medium',stat:'HOM'},
+{name:'Hang deck string lights',diff:'easy',stat:'HOM'},
+{name:'Replace the stove vent',diff:'medium',stat:'HOM'},
+{name:'Call a plumber about the weird toilet smell 🚽',diff:'easy',stat:'HOM'},
+{name:'Fix the cracked window',diff:'medium',stat:'HOM'},
+{name:'Generator hookup: get electrician quotes ⚡',diff:'easy',stat:'HOM'},
+{name:'Text Cody (Seminole Ventures) about the front-door paint color 🎨',diff:'trivial',stat:'HOM'},
+{name:"Fill out Week 8 college pick'em picks 🏈",diff:'easy',stat:'INT'},
+{name:'Deploy the $2,406 in the Vanguard settlement fund (VMFXX)',diff:'medium',stat:'INT'}],
+quests:[
+{name:'⚖️ The Lawsuit',stages:['Send the clerk email: signature / notarization question','Decide on the drafted demand letter (send or hold)']},
+{name:'🏟️ SDA Deployment',stages:['Init the production database','Pipeline first run','Publish the site (GitHub Pages) and share it with league managers','Create the Discord announcements webhook','Remove the snapshot CSVs from the repo (Copilot task)','Confirm the roster-highlight convention']},
+{name:'💰 Budget Planner Rebuild',stages:["Validate the household income data (Amber's FSU split + other account)",'Rebuild the planner income section','Revisit the early-retirement bridge numbers']},
+{name:'🔐 Passwords & Accounts Migration',stages:['Export the Dashlane vault','Import passwords into Apple Passwords','Turn off Chrome\u2019s built-in password saver','Verify logins on your key sites']}]};
+function mergePack(pack){let aT=0,aQ=0,aS=0;(pack.todos||[]).forEach(t=>{if(!S.todos.some(x=>x.name.toLowerCase()===String(t.name).toLowerCase())){S.todos.push({id:uid(),name:String(t.name),diff:DIFF[t.diff]?t.diff:'easy',stat:t.stat||'HOM',bounty:0});aT++}});
+(pack.quests||[]).forEach(q=>{let ex=S.quests.find(x=>x.name.toLowerCase()===String(q.name).toLowerCase());if(ex){(q.stages||[]).forEach(sn=>{let nm=typeof sn==='string'?sn:sn.name;if(!ex.stages.some(s=>s.name.toLowerCase()===String(nm).toLowerCase())){ex.stages.push({name:String(nm),done:false,bounty:0});aS++}})}else{S.quests.push({id:uid(),name:String(q.name),deadline:q.deadline||'',dmg:0,done:false,stages:(q.stages||[]).map(sn=>({name:String(typeof sn==='string'?sn:sn.name),done:false,bounty:0}))});aQ++;aS+=(q.stages||[]).length}});
+let msg='Added '+aT+' side quests, '+aQ+' new major quests, '+aS+' quest stages.';addLog('📦 Quest Pack loaded ('+(pack.name||'imported')+'): '+msg);save();render();return msg}
+document.getElementById('packBtn').onclick=()=>{let m=mergePack(QUEST_PACK);document.getElementById('packMsg').textContent='✅ '+m+' Anything already in your game was skipped — tap again any time, it will just say 0.';coin();floater('📦 Pack loaded!')};
+document.getElementById('packFileBtn').onclick=()=>document.getElementById('packFile').click();
+document.getElementById('packFile').onchange=e=>{let f=e.target.files[0];if(!f)return;f.text().then(t=>{try{let j=JSON.parse(t);let m=mergePack(j);document.getElementById('packMsg').textContent='✅ Imported pack: '+m}catch(err){document.getElementById('packMsg').textContent='⚠️ That file does not look like a quest pack.'}})};
 /* render */
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 function render(){let P=S.player;document.getElementById('lvl').textContent='🧙 Level '+P.level;document.getElementById('gold').textContent='🪙 '+P.gold;

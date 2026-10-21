@@ -49,7 +49,7 @@ details{margin-top:8px}summary{cursor:pointer;color:#bdb3e8}
 <div class="row"><button class="ghost grow" data-min="10">10m</button><button class="ghost grow" data-min="25">25m</button><button class="ghost grow" data-min="50">50m</button></div>
 <button id="focusBtn" style="width:100%;margin-top:8px">Start Focus</button>
 <button id="focusDemo" class="ghost sm" style="margin-top:6px">⚡ Demo: finish now (for testing)</button>
-<button id="focusQuit" class="ghost sm" style="margin-top:6px">Abandon (−2 HP)</button></div>
+<button id="focusQuit" class="ghost sm" style="margin-top:6px">Abandon (−2 HP)</button><div class="muted" id="wakeStatus">Screen stays awake while a session runs (where your browser supports it).</div></div>
 
 <h2>🔁 Dailies</h2><div class="muted">Reset every day. A miss at rollover costs HP — but Dailies never get deadline-locked. Tap Complete as many times as you do it in a day (multiple dog walks count): each tap earns its reward, your streak counts days, not taps.</div><div id="dailies"></div>
 <div class="card"><b>Add a Daily</b><input id="ndName" placeholder="e.g. Make the bed"><div class="row"><select id="ndDiff"><option value="trivial">Trivial</option><option value="easy" selected>Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select><select id="ndStat"><option>STR</option><option>INT</option><option>VIT</option><option>HOM</option></select><button id="ndAdd">Add</button></div></div>
@@ -159,15 +159,26 @@ window.buy=item=>{let P=S.player;if(item==='potion'){if(P.gold<30)return notEnou
 window.redeem=id=>{let r=S.rewards.find(x=>x.id===id);if(!r)return;if(S.player.gold<r.price)return notEnough();S.player.gold-=r.price;addLog('🎁 Redeemed: '+r.name+' (−'+r.price+' gold). Enjoy it — you earned it.');coin();save();render()};
 function notEnough(){floater('Not enough gold 🪙');thud()}
 function shakeLock(){floater('🔒 Deadline Mode!');thud();let b=document.getElementById('banner');b.style.display='block'}
-/* focus */
-let fTotal=25*60,fLeft=fTotal,fTimer=null;
+/* focus — plus a Screen Wake Lock, so the iPhone does not auto-sleep
+   while a session runs. This is NOT the parked wall-clock change: the
+   timer still only counts while the app is open and running, it just
+   keeps the screen on so you do not have to keep tapping it awake.
+   Wake locks release automatically if you switch apps or lock the
+   phone manually, so we re-request when you come back to a running
+   session. If the browser does not support wake locks, the timer
+   still runs — it just cannot stop auto-sleep on its own. */
+let fTotal=25*60,fLeft=fTotal,fTimer=null,wakeLock=null;
+function setWakeStatus(t){let el=document.getElementById('wakeStatus');if(el)el.textContent=t}
+async function requestWakeLock(){try{if(typeof navigator==='undefined'||!navigator.wakeLock){setWakeStatus('⚠️ This browser cannot keep the screen awake — keep the app in view.');return}wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null;if(fTimer)setWakeStatus('Screen awake lock released — tap Pause, then Start, to re-lock it.')});setWakeStatus('🔆 Screen awake — your phone will not auto-sleep while this runs.')}catch(e){wakeLock=null;setWakeStatus('⚠️ Could not keep the screen awake — keep the app in view.')}}
+async function releaseWakeLock(){try{if(wakeLock)await wakeLock.release()}catch(e){}wakeLock=null;setWakeStatus('Screen stays awake while a session runs (where your browser supports it).')}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&fTimer&&!wakeLock)requestWakeLock()});
 document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>{if(fTimer)return;fTotal=fLeft=+b.dataset.min*60;drawClock()});
 function drawClock(){document.getElementById('clock').textContent=String(Math.floor(fLeft/60)).padStart(2,'0')+':'+String(fLeft%60).padStart(2,'0')}
 function focusTarget(){return document.getElementById('focusQuest').value||''}
-function finishFocus(){clearInterval(fTimer);fTimer=null;document.getElementById('focusBtn').textContent='Start Focus';let mins=fTotal/60;let qid=focusTarget();award(mins,mins,'INT',true);recordFocus(mins);addLog('🎯 Focus session complete: '+mins+' min.');if(qid){let q=S.quests.find(x=>x.id===qid);if(q&&!q.done){q.dmg=(q.dmg||0)+mins;let fb=document.getElementById('focusBoss');fb.classList.remove('shake');void fb.offsetWidth;fb.classList.add('shake');addLog('💥 Dealt '+mins+' damage to '+q.name+' (stage progress '+Math.min(100,q.dmg)+'/100).');while(q.dmg>=100&&q.stages.some(s=>!s.done)){q.dmg-=100;let idx=q.stages.findIndex(s=>!s.done);window.doStage(qid,idx)}}}growBounty();save();render()}
-document.getElementById('focusBtn').onclick=()=>{let qid=focusTarget();if(locked('focus',qid))return shakeLock();if(fTimer){clearInterval(fTimer);fTimer=null;document.getElementById('focusBtn').textContent='Resume Focus';return}document.getElementById('focusBtn').textContent='Pause';fTimer=setInterval(()=>{fLeft--;drawClock();if(fLeft<=0)finishFocus()},1000)};
+function finishFocus(){clearInterval(fTimer);fTimer=null;releaseWakeLock();document.getElementById('focusBtn').textContent='Start Focus';let mins=fTotal/60;let qid=focusTarget();award(mins,mins,'INT',true);recordFocus(mins);addLog('🎯 Focus session complete: '+mins+' min.');if(qid){let q=S.quests.find(x=>x.id===qid);if(q&&!q.done){q.dmg=(q.dmg||0)+mins;let fb=document.getElementById('focusBoss');fb.classList.remove('shake');void fb.offsetWidth;fb.classList.add('shake');addLog('💥 Dealt '+mins+' damage to '+q.name+' (stage progress '+Math.min(100,q.dmg)+'/100).');while(q.dmg>=100&&q.stages.some(s=>!s.done)){q.dmg-=100;let idx=q.stages.findIndex(s=>!s.done);window.doStage(qid,idx)}}}growBounty();save();render()}
+document.getElementById('focusBtn').onclick=()=>{let qid=focusTarget();if(locked('focus',qid))return shakeLock();if(fTimer){clearInterval(fTimer);fTimer=null;releaseWakeLock();document.getElementById('focusBtn').textContent='Resume Focus';return}document.getElementById('focusBtn').textContent='Pause';fTimer=setInterval(()=>{fLeft--;drawClock();if(fLeft<=0)finishFocus()},1000);requestWakeLock()};
 document.getElementById('focusDemo').onclick=()=>{let qid=focusTarget();if(locked('focus',qid))return shakeLock();finishFocus()};
-document.getElementById('focusQuit').onclick=()=>{if(fTimer){clearInterval(fTimer);fTimer=null;document.getElementById('focusBtn').textContent='Start Focus'}fLeft=fTotal;drawClock();damage(2,'Abandoned a focus session.');save();render()};
+document.getElementById('focusQuit').onclick=()=>{if(fTimer){clearInterval(fTimer);fTimer=null;document.getElementById('focusBtn').textContent='Start Focus'}releaseWakeLock();fLeft=fTotal;drawClock();damage(2,'Abandoned a focus session.');save();render()};
 /* screen */
 document.getElementById('screenBtn').onclick=()=>{if(S.screen.submitted)return;let any=false;document.querySelectorAll('[data-cat]').forEach(i=>{if(i.value!=='')any=true});if(!any){floater('Enter at least one category first 📱');return}let total={xp:0,gold:0,dmg:0};document.querySelectorAll('[data-cat]').forEach(inp=>{let cat=inp.dataset.cat;let used=+inp.value;if(inp.value==='')return;let tgt=+document.querySelector('[data-tgt="'+cat+'"]').value||0;S.settings.targets[cat]=tgt;if(used<=tgt){total.xp+=10;total.gold+=15;addLog('📱 '+cat+': '+used+'m ≤ '+tgt+'m target → +15 gold')}else{total.dmg+=3;addLog('📱 '+cat+': '+used+'m > '+tgt+'m target → −3 HP')}});S.screen.submitted=true;if(total.xp)award(total.xp,total.gold,'INT',false);if(total.dmg)damage(total.dmg,'Over screen budget.');save();render()};
 /* add forms */

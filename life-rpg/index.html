@@ -10,7 +10,7 @@ button{font:inherit;border:0;border-radius:10px;padding:10px 12px;background:#6c
 .task.done{opacity:.55}.task.locked{opacity:.45}
 .badge{background:#3a2d63;border-radius:99px;padding:2px 8px;font-size:12px;color:#d9d2ff;white-space:nowrap}.bounty{background:#5a4510;color:#ffd34d}
 input,select,textarea{font:inherit;width:100%;padding:10px;border-radius:10px;border:1px solid #453a70;background:#120d22;color:#fff;margin:4px 0}
-.avatar{font-size:52px;text-align:center}.bossface{font-size:56px;display:inline-block}
+.avatar{min-height:108px;display:flex;align-items:center;justify-content:center;text-align:center}.wizard-sprite{width:64px;height:96px;image-rendering:pixelated;image-rendering:crisp-edges;object-fit:contain;display:block;margin:0 auto}@media(prefers-reduced-motion:reduce){.wizard-sprite{animation:none}}.bossface{font-size:56px;display:inline-block}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}.bob{animation:bob 2.2s ease-in-out infinite}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-4deg)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}.shake{animation:shake .45s}
 @keyframes floatUp{0%{opacity:0;transform:translateY(8px) scale(.8)}15%{opacity:1}100%{opacity:0;transform:translateY(-64px) scale(1.15)}}
@@ -90,7 +90,7 @@ details{margin-top:8px}summary{cursor:pointer;color:#bdb3e8}
 <h2>🗄️ Retired Challenges</h2>
 <div class="card" id="retired"></div>
 <div class="muted">Tap ✕ on any daily, habit, side quest or major quest to retire it: it stops counting for streaks and rollover misses, but its all-time count and records are kept. Restore it here any time, or delete it for good.</div>
-<script>
+<script src="./wizard-sprite.js"></script><script>
 const KEY='liferpg_v1';
 const DIFF={trivial:{xp:5,gold:5,dmg:2},easy:{xp:10,gold:10,dmg:3},medium:{xp:20,gold:22,dmg:5},hard:{xp:40,gold:45,dmg:8}};
 const STAGE={xp:50,gold:60};
@@ -179,10 +179,10 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&fTimer&&!
 document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>{if(fTimer)return;fTotal=fLeft=+b.dataset.min*60;drawClock()});
 function drawClock(){document.getElementById('clock').textContent=String(Math.floor(fLeft/60)).padStart(2,'0')+':'+String(fLeft%60).padStart(2,'0')}
 function focusTarget(){return document.getElementById('focusQuest').value||''}
-function finishFocus(){clearInterval(fTimer);fTimer=null;releaseWakeLock();document.getElementById('focusBtn').textContent='Start Focus';let mins=fTotal/60;let qid=focusTarget();award(mins,mins,'INT',true);recordFocus(mins);addLog('🎯 Focus session complete: '+mins+' min.');if(qid){let q=S.quests.find(x=>x.id===qid);if(q&&!q.done){q.dmg=(q.dmg||0)+mins;let fb=document.getElementById('focusBoss');fb.classList.remove('shake');void fb.offsetWidth;fb.classList.add('shake');addLog('💥 Dealt '+mins+' damage to '+q.name+' (stage progress '+Math.min(100,q.dmg)+'/100).');while(q.dmg>=100&&q.stages.some(s=>!s.done)){q.dmg-=100;let idx=q.stages.findIndex(s=>!s.done);window.doStage(qid,idx)}}}growBounty();save();render()}
-document.getElementById('focusBtn').onclick=()=>{let qid=focusTarget();if(locked('focus',qid))return shakeLock();if(fTimer){clearInterval(fTimer);fTimer=null;releaseWakeLock();document.getElementById('focusBtn').textContent='Resume Focus';return}document.getElementById('focusBtn').textContent='Pause';fTimer=setInterval(()=>{fLeft--;drawClock();if(fLeft<=0)finishFocus()},1000);requestWakeLock()};
+function finishFocus(){clearInterval(fTimer);fTimer=null;if(window.setWizardMode)window.setWizardMode('idle');releaseWakeLock();document.getElementById('focusBtn').textContent='Start Focus';let mins=fTotal/60;let qid=focusTarget();award(mins,mins,'INT',true);recordFocus(mins);addLog('🎯 Focus session complete: '+mins+' min.');if(qid){let q=S.quests.find(x=>x.id===qid);if(q&&!q.done){q.dmg=(q.dmg||0)+mins;let fb=document.getElementById('focusBoss');fb.classList.remove('shake');void fb.offsetWidth;fb.classList.add('shake');addLog('💥 Dealt '+mins+' damage to '+q.name+' (stage progress '+Math.min(100,q.dmg)+'/100).');while(q.dmg>=100&&q.stages.some(s=>!s.done)){q.dmg-=100;let idx=q.stages.findIndex(s=>!s.done);window.doStage(qid,idx)}}}growBounty();save();render()}
+document.getElementById('focusBtn').onclick=()=>{let qid=focusTarget();if(locked('focus',qid))return shakeLock();if(fTimer){clearInterval(fTimer);fTimer=null;releaseWakeLock();document.getElementById('focusBtn').textContent='Resume Focus';if(window.setWizardMode)window.setWizardMode('idle');return}document.getElementById('focusBtn').textContent='Pause';if(window.setWizardMode)window.setWizardMode('study');fTimer=setInterval(()=>{fLeft--;drawClock();if(fLeft<=0)finishFocus()},1000);requestWakeLock()};
 document.getElementById('focusDemo').onclick=()=>{let qid=focusTarget();if(locked('focus',qid))return shakeLock();finishFocus()};
-document.getElementById('focusQuit').onclick=()=>{if(fTimer){clearInterval(fTimer);fTimer=null;document.getElementById('focusBtn').textContent='Start Focus'}releaseWakeLock();fLeft=fTotal;drawClock();damage(2,'Abandoned a focus session.');save();render()};
+document.getElementById('focusQuit').onclick=()=>{if(fTimer){clearInterval(fTimer);fTimer=null;document.getElementById('focusBtn').textContent='Start Focus'}if(window.setWizardMode)window.setWizardMode('idle');releaseWakeLock();fLeft=fTotal;drawClock();damage(2,'Abandoned a focus session.');save();render()};
 /* screen */
 document.getElementById('screenBtn').onclick=()=>{if(S.screen.submitted)return;let any=false;document.querySelectorAll('[data-cat]').forEach(i=>{if(i.value!=='')any=true});if(!any){floater('Enter at least one category first 📱');return}let total={xp:0,gold:0,dmg:0};document.querySelectorAll('[data-cat]').forEach(inp=>{let cat=inp.dataset.cat;let used=+inp.value;if(inp.value==='')return;let tgt=+document.querySelector('[data-tgt="'+cat+'"]').value||0;S.settings.targets[cat]=tgt;if(used<=tgt){total.xp+=10;total.gold+=15;addLog('📱 '+cat+': '+used+'m ≤ '+tgt+'m target → +15 gold')}else{total.dmg+=3;addLog('📱 '+cat+': '+used+'m > '+tgt+'m target → −3 HP')}});S.screen.submitted=true;if(total.xp)award(total.xp,total.gold,'INT',false);if(total.dmg)damage(total.dmg,'Over screen budget.');save();render()};
 /* add forms */
@@ -242,7 +242,7 @@ refreshSectionControls()}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 function render(){let P=S.player;document.getElementById('lvl').textContent='🧙 Level '+P.level;document.getElementById('gold').textContent='🪙 '+P.gold;
 document.getElementById('xpbar').style.width=Math.min(100,P.xp/P.xpNext*100)+'%';document.getElementById('hpbar').style.width=Math.max(0,P.hp/P.hpMax*100)+'%';
-document.getElementById('avatar').textContent='🧙';document.getElementById('gear').innerHTML=P.items.map(i=>'<span class="badge">'+i.icon+' '+esc(i.name)+'</span>').join('')+(P.freezes?'<span class="badge">🧊 Freezes: '+P.freezes+'</span>':'');
+if(window.setWizardMode&&!fTimer)window.setWizardMode('idle');document.getElementById('gear').innerHTML=P.items.map(i=>'<span class="badge">'+i.icon+' '+esc(i.name)+'</span>').join('')+(P.freezes?'<span class="badge">🧊 Freezes: '+P.freezes+'</span>':'');
 document.getElementById('pets').innerHTML=P.pets.length?P.pets.map(p=>'<span class="pet">'+p+'</span>').join(' '):'<span class="muted">No pets yet — eggs in the shop.</span>';
 document.getElementById('stats').innerHTML=Object.entries(P.stats).map(([k,v])=>'<span class="badge">'+k+' '+v+'</span>').join('')+'<span class="badge">HP '+P.hp+'/'+P.hpMax+'</span><span class="badge">XP '+P.xp+'/'+P.xpNext+'</span>';
 let u=urgentQuest(),b=document.getElementById('banner');if(u&&S.meta.overrideDay!==todayStr()){b.style.display='block';b.innerHTML='🔒 <b>DEADLINE MODE:</b> "'+esc(u.name)+'" is due '+(u.deadline||'')+'. Other quests are locked until its next stage is done. Dailies still count.<br><button class="warn sm" style="margin-top:6px" onclick="overrideLock()">Break lock today — 25 gold</button>'}else b.style.display='none';

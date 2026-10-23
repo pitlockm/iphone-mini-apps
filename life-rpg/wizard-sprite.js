@@ -5,8 +5,8 @@
   if (!root) return;
   const base = './assets/characters/wizard/';
   const frames = {
-    idle: [base + 'idle-1.svg', base + 'idle-2.svg'],
-    study: [base + 'study-1.svg', base + 'study-2.svg']
+    idle: [base + 'idle-1.svg', base + 'idle-2.svg', base + 'idle-3.svg', base + 'idle-4.svg'],
+    study: [base + 'study-1.svg', base + 'study-2.svg', base + 'study-3.svg', base + 'study-4.svg', base + 'study-5.svg', base + 'study-6.svg']
   };
   let mode = 'idle';
   let frame = 0;
